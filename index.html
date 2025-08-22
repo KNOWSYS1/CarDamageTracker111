@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 7.4.6.2 (Windows)"/>
+	<meta name="created" content="00:00:00"/>
+	<meta name="changed" content="2025-08-22T05:53:34.296000000"/>
+	<style type="text/css">
+		@page { size: 8.5in 11in; margin: 0.79in }
+		p { line-height: 115%; margin-bottom: 0.1in; background: transparent }
+		pre { background: transparent }
+		pre.western { font-family: "Liberation Mono", monospace; font-size: 10pt }
+		pre.cjk { font-family: "NSimSun", monospace; font-size: 10pt }
+		pre.ctl { font-family: "Liberation Mono", monospace; font-size: 10pt }
+		a:link { color: #000080; text-decoration: underline }
+		a:visited { color: #800000; text-decoration: underline }
+	</style>
+</head>
+<body lang="en-US" link="#000080" vlink="#800000" dir="ltr"><pre class="western">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Car Damage Tracker&lt;/title&gt;
+    &lt;style&gt;
+        body {
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            position: relative;
+            display: inline-block;
+        }
+        .main-content {
+            max-width: 395px; /* Match image width */
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .marker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        #damageList {
+            max-height: 400px;
+            overflow-y: auto;
+            width: 100%;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        #damageList ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #damageList li {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #damageList button {
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        #damageList button:hover {
+            background: #cc0000;
+        }
+        #damageModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 1px solid #000;
+            z-index: 1000;
+        }
+        #modalBackdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Car Damage Tracker&lt;/h1&gt;
+    &lt;div class=&quot;main-content&quot;&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;img id=&quot;carImage&quot; src=&quot;https://static.wixstatic.com/media/979173_907aaba065dc4728bf11df75c5581a3d~mv2.jpg/v1/fill/w_395,h_600,al_c,q_80,enc_avif,quality_auto/979173_907aaba065dc4728bf11df75c5581a3d~mv2.jpg&quot; alt=&quot;Car Diagram&quot; width=&quot;395&quot; height=&quot;600&quot;&gt;
+        &lt;/div&gt;
+        &lt;div id=&quot;damageList&quot;&gt;
+            &lt;h3&gt;Damage List&lt;/h3&gt;
+            &lt;ul id=&quot;damageItems&quot;&gt;&lt;/ul&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;br&gt;
+    &lt;button onclick=&quot;saveDamages()&quot;&gt;Save Damages&lt;/button&gt;
+    &lt;button onclick=&quot;loadDamages()&quot;&gt;Load Previous Damages&lt;/button&gt;
+
+    &lt;!-- Modal for entering damage details --&gt;
+    &lt;div id=&quot;damageModal&quot; style=&quot;display: none;&quot;&gt;
+        &lt;h3&gt;Enter Damage Details&lt;/h3&gt;
+        &lt;label&gt;Date: &lt;input type=&quot;date&quot; id=&quot;damageDate&quot;&gt;&lt;/label&gt;&lt;br&gt;
+        &lt;label&gt;Time: &lt;input type=&quot;time&quot; id=&quot;damageTime&quot;&gt;&lt;/label&gt;&lt;br&gt;
+        &lt;label&gt;Description: &lt;textarea id=&quot;damageDescription&quot; rows=&quot;4&quot; cols=&quot;30&quot;&gt;&lt;/textarea&gt;&lt;/label&gt;&lt;br&gt;
+        &lt;button onclick=&quot;submitDamageDetails()&quot;&gt;Submit&lt;/button&gt;
+        &lt;button onclick=&quot;closeModal()&quot;&gt;Cancel&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div id=&quot;modalBackdrop&quot; style=&quot;display: none;&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let damages = [];
+        let currentClick = null;
+        const passkey = &quot;delete123&quot;; // Generic passkey for deleting damages
+
+        function init() {
+            console.log('Initializing car damage tracker');
+            const img = document.getElementById('carImage');
+            if (!img) {
+                console.error('Car image element not found');
+                return;
+            }
+            img.onclick = getClickPosition;
+            loadDamages();
+        }
+
+        function getClickPosition(e) {
+            const pos = getCoordinates(e);
+            if (pos) {
+                console.log('Click position:', pos);
+                currentClick = pos;
+                showModal();
+            }
+        }
+
+        function getCoordinates(e) {
+            let PosX = 0, PosY = 0;
+            const img = document.getElementById('carImage');
+            const ImgPos = findPosition(img);
+            if (!e) e = window.event;
+            if (e.pageX || e.pageY) {
+                PosX = e.pageX;
+                PosY = e.pageY;
+            } else if (e.clientX || e.clientY) {
+                PosX = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+                PosY = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+            }
+            PosX -= ImgPos[0];
+            PosY -= ImgPos[1];
+            return {x: PosX, y: PosY};
+        }
+
+        function findPosition(oElement) {
+            let posX = 0, posY = 0;
+            for (; oElement; oElement = oElement.offsetParent) {
+                posX += oElement.offsetLeft;
+                posY += oElement.offsetTop;
+            }
+            return [posX, posY];
+        }
+
+        function addMarker(x, y, id) {
+            const marker = document.createElement('div');
+            marker.className = 'marker';
+            marker.id = `marker-${id}`;
+            marker.style.left = `${x - 5}px`;
+            marker.style.top = `${y - 5}px`;
+            document.querySelector('.container').appendChild(marker);
+            console.log('Marker added at:', x, y, 'ID:', id);
+        }
+
+        function showModal() {
+            const modal = document.getElementById('damageModal');
+            const backdrop = document.getElementById('modalBackdrop');
+            if (modal &amp;&amp; backdrop) {
+                modal.style.display = 'block';
+                backdrop.style.display = 'block';
+                document.getElementById('damageDate').value = '';
+                document.getElementById('damageTime').value = '';
+                document.getElementById('damageDescription').value = '';
+                console.log('Modal opened');
+            } else {
+                console.error('Modal or backdrop element not found');
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('damageModal');
+            const backdrop = document.getElementById('modalBackdrop');
+            if (modal &amp;&amp; backdrop) {
+                modal.style.display = 'none';
+                backdrop.style.display = 'none';
+                currentClick = null;
+                console.log('Modal closed');
+            }
+        }
+
+        function submitDamageDetails() {
+            const date = document.getElementById('damageDate').value;
+            const time = document.getElementById('damageTime').value;
+            const description = document.getElementById('damageDescription').value;
+            if (currentClick &amp;&amp; date &amp;&amp; time &amp;&amp; description) {
+                const id = damages.length; // Use index as unique ID
+                const damage = {
+                    id: id,
+                    x: currentClick.x,
+                    y: currentClick.y,
+                    date: date,
+                    time: time,
+                    description: description
+                };
+                damages.push(damage);
+                addMarker(currentClick.x, currentClick.y, id);
+                updateDamageList();
+                console.log('Damage added:', damage);
+                closeModal();
+            } else {
+                alert('Please fill in all fields.');
+                console.error('Missing fields:', { date, time, description });
+            }
+        }
+
+        function deleteDamage(index) {
+            const enteredPasskey = prompt('Enter passkey to delete this damage:');
+            if (enteredPasskey === passkey) {
+                const damage = damages[index];
+                if (damage) {
+                    damages.splice(index, 1);
+                    // Reassign IDs to remaining damages
+                    damages.forEach((d, i) =&gt; d.id = i);
+                    // Remove all markers and re-render
+                    document.querySelectorAll('.marker').forEach(m =&gt; m.remove());
+                    damages.forEach(d =&gt; addMarker(d.x, d.y, d.id));
+                    updateDamageList();
+                    saveDamages();
+                    console.log('Damage deleted at index:', index);
+                }
+            } else {
+                alert('Incorrect passkey. Deletion cancelled.');
+                console.log('Incorrect passkey entered for deletion');
+            }
+        }
+
+        function updateDamageList() {
+            const list = document.getElementById('damageItems');
+            if (!list) {
+                console.error('Damage list element not found');
+                return;
+            }
+            list.innerHTML = '';
+            damages.forEach((d, index) =&gt; {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    &lt;span&gt;&lt;strong&gt;Damage ${index + 1}&lt;/strong&gt;: (${d.x}, ${d.y})&lt;br&gt;Date: ${d.date}&lt;br&gt;Time: ${d.time}&lt;br&gt;Description: ${d.description}&lt;/span&gt;
+                    &lt;button onclick=&quot;deleteDamage(${index})&quot;&gt;Delete&lt;/button&gt;
+                `;
+                list.appendChild(li);
+            });
+            console.log('Damage list updated:', damages);
+        }
+
+        function saveDamages() {
+            try {
+                localStorage.setItem('carDamages', JSON.stringify(damages));
+                alert('Damages saved to local storage!');
+                console.log('Damages saved to localStorage:', damages);
+            } catch (e) {
+                console.error('Error saving to localStorage:', e);
+                alert('Error saving damages. Check browser settings.');
+            }
+        }
+
+        function loadDamages() {
+            try {
+                const saved = localStorage.getItem('carDamages');
+                if (saved) {
+                    damages = JSON.parse(saved);
+                    // Ensure IDs are set
+                    damages.forEach((d, i) =&gt; d.id = i);
+                    damages.forEach(d =&gt; addMarker(d.x, d.y, d.id));
+                    updateDamageList();
+                    console.log('Damages loaded from localStorage:', damages);
+                } else {
+                    console.log('No saved damages found');
+                }
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+                alert('Error loading damages. Check browser settings.');
+            }
+        }
+
+        init();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</body>
+</html>
